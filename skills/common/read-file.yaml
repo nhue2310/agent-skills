@@ -1,0 +1,40 @@
+name: read_file
+description: Read the contents of a file from the local filesystem or a URL.
+category: file_operations
+
+input_schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: The file path or URL to read from
+    encoding:
+      type: string
+      description: The file encoding (default utf-8)
+      default: utf-8
+    start_line:
+      type: integer
+      description: The line number to start reading from (1-indexed, optional)
+    end_line:
+      type: integer
+      description: The line number to stop reading at (inclusive, optional)
+  required:
+    - path
+
+output_schema:
+  type: object
+  properties:
+    content:
+      type: string
+      description: The file contents
+    line_count:
+      type: integer
+      description: Total number of lines in the file
+    size_bytes:
+      type: integer
+      description: File size in bytes
+
+compatible_platforms:
+  - claude
+  - codex
+  - gemini

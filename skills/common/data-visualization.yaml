@@ -1,0 +1,53 @@
+name: data_visualization
+description: Generate chart and visualization specifications or code from data.
+category: data_analysis
+
+input_schema:
+  type: object
+  properties:
+    data:
+      type: string
+      description: JSON string or CSV content representing the data to visualize
+    chart_type:
+      type: string
+      description: Type of chart to generate
+      enum: [bar, line, scatter, pie, histogram, heatmap, box, area, bubble, auto]
+      default: auto
+    title:
+      type: string
+      description: Title for the chart
+    x_field:
+      type: string
+      description: Field name to use for the x-axis
+    y_field:
+      type: string
+      description: Field name to use for the y-axis
+    color_field:
+      type: string
+      description: Field name to use for color differentiation
+    output_format:
+      type: string
+      description: Output format for the visualization
+      enum: [vega_lite, plotly, matplotlib_code, html]
+      default: vega_lite
+  required:
+    - data
+
+output_schema:
+  type: object
+  properties:
+    spec:
+      type: string
+      description: The visualization specification or code
+    format:
+      type: string
+      description: The format of the output spec
+    recommendations:
+      type: array
+      items:
+        type: string
+      description: Suggestions for improving the visualization
+
+compatible_platforms:
+  - gemini
+  - codex

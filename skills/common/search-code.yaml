@@ -1,0 +1,54 @@
+name: search_code
+description: Search for patterns, symbols, or text within a codebase.
+category: code_operations
+
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: The search query, pattern, or symbol to find
+    path:
+      type: string
+      description: Directory or file path to search in (default is current directory)
+      default: .
+    file_pattern:
+      type: string
+      description: Glob pattern to filter files (e.g., "*.py", "**/*.ts")
+    case_sensitive:
+      type: boolean
+      description: Whether search is case-sensitive
+      default: false
+    use_regex:
+      type: boolean
+      description: Whether to treat query as a regular expression
+      default: false
+    include_context_lines:
+      type: integer
+      description: Number of context lines to include around matches
+      default: 2
+    max_results:
+      type: integer
+      description: Maximum number of results to return
+      default: 50
+  required:
+    - query
+
+output_schema:
+  type: array
+  items:
+    type: object
+    properties:
+      file:
+        type: string
+      line_number:
+        type: integer
+      match:
+        type: string
+      context:
+        type: string
+
+compatible_platforms:
+  - claude
+  - codex
+  - gemini

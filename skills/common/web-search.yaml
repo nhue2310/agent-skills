@@ -1,0 +1,40 @@
+name: web_search
+description: Search the web for up-to-date information on any topic.
+category: information_retrieval
+
+input_schema:
+  type: object
+  properties:
+    query:
+      type: string
+      description: The search query to look up
+    num_results:
+      type: integer
+      description: Number of results to return (default 5, max 20)
+      default: 5
+    date_range:
+      type: string
+      description: Restrict results to a time range (e.g., "past week", "past month", "past year")
+      enum: [any, past_day, past_week, past_month, past_year]
+      default: any
+  required:
+    - query
+
+output_schema:
+  type: array
+  items:
+    type: object
+    properties:
+      title:
+        type: string
+      url:
+        type: string
+      snippet:
+        type: string
+      published_date:
+        type: string
+
+compatible_platforms:
+  - claude
+  - codex
+  - gemini

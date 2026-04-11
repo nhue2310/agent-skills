@@ -1,0 +1,46 @@
+name: code_interpreter
+description: Execute code in a sandboxed environment and return the output.
+category: code_execution
+
+input_schema:
+  type: object
+  properties:
+    code:
+      type: string
+      description: The code to execute
+    language:
+      type: string
+      description: The programming language
+      enum: [python, javascript, typescript, bash, ruby, go, rust, java, cpp, csharp]
+    timeout:
+      type: integer
+      description: Maximum execution time in seconds (default 30, max 300)
+      default: 30
+    packages:
+      type: array
+      description: Additional packages to install before execution
+      items:
+        type: string
+  required:
+    - code
+    - language
+
+output_schema:
+  type: object
+  properties:
+    stdout:
+      type: string
+      description: Standard output from code execution
+    stderr:
+      type: string
+      description: Standard error output
+    exit_code:
+      type: integer
+      description: Process exit code (0 = success)
+    execution_time_ms:
+      type: integer
+      description: Execution time in milliseconds
+
+compatible_platforms:
+  - codex
+  - gemini

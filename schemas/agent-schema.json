@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AgentDefinition",
+  "description": "Schema for defining an AI agent for Claude, CodeX, or Gemini platforms",
+  "type": "object",
+  "required": ["name", "description", "model", "platform", "system_prompt"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the agent",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what the agent does"
+    },
+    "model": {
+      "type": "string",
+      "description": "The specific model to use for this agent"
+    },
+    "platform": {
+      "type": "string",
+      "description": "The AI platform this agent runs on",
+      "enum": ["claude", "codex", "gemini"]
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "The system prompt that defines the agent's behavior and persona"
+    },
+    "parameters": {
+      "type": "object",
+      "description": "Platform-specific model parameters",
+      "properties": {
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_output_tokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "top_p": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "top_k": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "description": "List of skill names this agent is allowed to use",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

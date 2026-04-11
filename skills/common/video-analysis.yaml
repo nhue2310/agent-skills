@@ -1,0 +1,53 @@
+name: video_analysis
+description: Analyze video content to extract information, describe scenes, or answer questions about visual and audio content.
+category: multimodal
+
+input_schema:
+  type: object
+  properties:
+    video_source:
+      type: string
+      description: URL or base64-encoded video data
+    prompt:
+      type: string
+      description: Specific question or instruction about the video
+      default: Describe the key events and content in this video.
+    analysis_type:
+      type: string
+      description: Type of analysis to perform
+      enum: [describe, summarize, extract_events, detect_objects, transcribe_speech, custom]
+      default: describe
+    segment_start_ms:
+      type: integer
+      description: Start time in milliseconds for partial video analysis (optional)
+    segment_end_ms:
+      type: integer
+      description: End time in milliseconds for partial video analysis (optional)
+  required:
+    - video_source
+
+output_schema:
+  type: object
+  properties:
+    description:
+      type: string
+      description: Textual description or analysis of the video content
+    key_events:
+      type: array
+      items:
+        type: object
+        properties:
+          timestamp_ms:
+            type: integer
+          description:
+            type: string
+      description: List of key events with timestamps
+    speech_transcript:
+      type: string
+      description: Transcribed speech from the video (when using transcribe_speech)
+    duration_ms:
+      type: integer
+      description: Duration of the video in milliseconds
+
+compatible_platforms:
+  - gemini

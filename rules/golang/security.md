@@ -1,9 +1,6 @@
 # Security Guidelines — Go
 
 > These rules apply to all Go services and libraries. They are non-negotiable unless explicitly overridden in a project-specific `.cursorrules` or `AGENTS.md`.
->
-> **Related documents:** [`coding-style.md`](./coding-style.md) · [`testing.md`](./testing.md)
-
 ---
 
 ## Pre-Commit Security Checklist
@@ -38,51 +35,7 @@ Run this before every commit. CI will enforce it — but catching issues locally
 
 ### Startup Validation
 
-Validate all required secrets at boot — never let a misconfigured service start silently:
-
-```go
-// config/config.go
-
-type Config struct {
-    DatabaseURL    string
-    JWTSecret      string
-    EncryptionKey  string
-    RedisURL       string
-}
-
-func Load() (*Config, error) {
-    cfg := &Config{
-        DatabaseURL:   os.Getenv("DATABASE_URL"),
-        JWTSecret:     os.Getenv("JWT_SECRET"),
-        EncryptionKey: os.Getenv("ENCRYPTION_KEY"),
-        RedisURL:      os.Getenv("REDIS_URL"),
-    }
-
-    return cfg, cfg.validate()
-}
-
-func (c *Config) validate() error {
-    missing := []string{}
-
-    if c.DatabaseURL == ""   { missing = append(missing, "DATABASE_URL") }
-    if c.JWTSecret == ""     { missing = append(missing, "JWT_SECRET") }
-    if c.EncryptionKey == "" { missing = append(missing, "ENCRYPTION_KEY") }
-    if c.RedisURL == ""      { missing = append(missing, "REDIS_URL") }
-
-    if len(missing) > 0 {
-        return fmt.Errorf("missing required environment variables: %s", strings.Join(missing, ", "))
-    }
-    return nil
-}
-```
-
-```go
-// cmd/server/main.go
-cfg, err := config.Load()
-if err != nil {
-    log.Fatalf("configuration error: %v", err) // fail before binding any port
-}
-```
+Validate all required secrets at boot — never let a misconfigured service start silently
 
 ### Secret Rotation Protocol
 
@@ -296,88 +249,6 @@ csrfMiddleware := csrf.Protect(
 
 ---
 
-## 6. Authentication & Authorization
-
-### Password Storage
-
-```go
-import "golang.org/x/crypto/bcrypt"
-
-// ✅ Hash with bcrypt — cost ≥ 12
-func HashPassword(plain string) (string, error) {
-    hash, err := bcrypt.GenerateFromPassword([]byte(plain), 12)
-    if err != nil {
-        return "", errors.Wrap(err, "bcrypt.GenerateFromPassword")
-    }
-    return string(hash), nil
-}
-
-func CheckPassword(plain, hash string) bool {
-    return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil
-}
-```
-
-### JWT — Validation Rules
-
-```go
-import "github.com/golang-jwt/jwt/v5"
-
-type Claims struct {
-    UserID string `json:"sub"`
-    Role   string `json:"role"`
-    jwt.RegisteredClaims
-}
-
-func ValidateToken(tokenStr, secret string) (*Claims, error) {
-    claims := &Claims{}
-
-    token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (any, error) {
-        // ✅ Verify signing method explicitly — prevent algorithm switching attacks
-        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-            return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-        }
-        return []byte(secret), nil
-    },
-        jwt.WithExpirationRequired(),       // reject tokens with no expiry
-        jwt.WithIssuedAt(),                 // validate iat claim
-    )
-    if err != nil || !token.Valid {
-        return nil, errors.Wrap(err, "invalid token")
-    }
-    return claims, nil
-}
-```
-
-**JWT rules:**
-- Always verify the signing algorithm — never accept `alg: none`.
-- Set a short expiry (`exp`) — typically 15 minutes for access tokens.
-- Use refresh tokens with longer TTL stored server-side (revocable).
-- Store JWTs in `httpOnly`, `Secure`, `SameSite=Strict` cookies — not `localStorage`.
-- JWT secret minimum 32 bytes, loaded from env only.
-
-### Authorization — Enforce in Usecase Layer
-
-```go
-// ❌ Auth only at handler — usecase is unprotected if called from other places
-func (h *UserHandler) DeleteUser(c *gin.Context) {
-    if !isAdmin(c) { c.AbortWithStatus(403); return }
-    h.usecase.Delete(c.Request.Context(), c.Param("id")) // no authz check here
-}
-
-// ✅ Authz enforced inside usecase — safe regardless of caller
-func (s *UserService) Delete(ctx context.Context, requesterID, targetID string) error {
-    requester, err := s.repo.FindByID(ctx, requesterID)
-    if err != nil { return errors.Wrap(err, "fetch requester") }
-
-    if requester.Role != domain.RoleAdmin && requesterID != targetID {
-        return domain.ErrUnauthorized
-    }
-    return s.repo.Delete(ctx, targetID)
-}
-```
-
----
-
 ## 7. Rate Limiting
 
 Apply rate limiting at the **router level** as middleware. Every public endpoint must be rate-limited. Never rely solely on upstream infrastructure.
@@ -468,21 +339,6 @@ func userFacingMessage(err error) string {
     }
 }
 
-func (h *handler) respond(c *gin.Context, err error) {
-    traceID := trace.FromContext(c.Request.Context())
-
-    // Log full detail internally (with stack trace via pkg/errors)
-    h.logger.Error("request failed",
-        zap.Error(err),
-        zap.String("traceID", traceID),
-    )
-
-    // Return safe message to client
-    c.JSON(toHTTPStatus(err), ErrorResponse{
-        Error:   userFacingMessage(err),
-        TraceID: traceID, // client can quote this in support tickets
-    })
-}
 ```
 
 ---
@@ -499,51 +355,11 @@ func (h *handler) respond(c *gin.Context, err error) {
 | Random tokens | `crypto/rand` | `math/rand` |
 | TLS | TLS 1.2 minimum, 1.3 preferred | SSL, TLS 1.0/1.1 |
 | Hashing (non-password) | SHA-256 / SHA-512 | MD5, SHA1 |
-
-```go
-// ✅ Cryptographically secure random token
-import "crypto/rand"
-import "encoding/hex"
-
-func generateToken(n int) (string, error) {
-    b := make([]byte, n)
-    if _, err := rand.Read(b); err != nil {
-        return "", errors.Wrap(err, "rand.Read")
-    }
-    return hex.EncodeToString(b), nil
-}
-
-// ✅ AES-256-GCM encryption
-func encrypt(key, plaintext []byte) ([]byte, error) {
-    block, err := aes.NewCipher(key) // key must be 32 bytes for AES-256
-    if err != nil {
-        return nil, errors.Wrap(err, "aes.NewCipher")
-    }
-    gcm, err := cipher.NewGCM(block)
-    if err != nil {
-        return nil, errors.Wrap(err, "cipher.NewGCM")
-    }
-    nonce := make([]byte, gcm.NonceSize())
-    if _, err = rand.Read(nonce); err != nil {
-        return nil, errors.Wrap(err, "rand nonce")
-    }
-    return gcm.Seal(nonce, nonce, plaintext, nil), nil
-}
-```
-
 ---
 
 ## 10. Dependency Security
 
 Run `govulncheck` on every CI pipeline — it scans your dependency tree against the Go vulnerability database:
-
-```bash
-# Install
-go install golang.org/x/vuln/cmd/govulncheck@latest
-
-# Run — fail CI on any vulnerability affecting reachable code
-govulncheck ./...
-```
 
 Rules:
 - Update dependencies regularly — do not let `go.sum` drift for months.
@@ -557,50 +373,13 @@ Rules:
 
 Register a security headers middleware on every server — before all other middleware:
 
-```go
-func SecurityHeadersMiddleware() gin.HandlerFunc {
-    return func(c *gin.Context) {
-        c.Header("X-Content-Type-Options", "nosniff")
-        c.Header("X-Frame-Options", "DENY")
-        c.Header("X-XSS-Protection", "1; mode=block")
-        c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
-        c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-        c.Header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
-        c.Header("Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; object-src 'none'; frame-ancestors 'none'")
-        // Remove server fingerprinting headers
-        c.Header("Server", "")
-        c.Next()
-    }
-}
-```
-
 ---
 
 ## 12. Static Security Analysis — gosec
 
 Run **`gosec`** on every CI pipeline as a mandatory gate:
 
-```bash
-go install github.com/securego/gosec/v2/cmd/gosec@latest
-gosec ./...
-```
-
 Prefer running via `golangci-lint` so it is part of the unified lint pipeline:
-
-```yaml
-# .golangci.yml
-linters:
-  enable:
-    - gosec
-
-linters-settings:
-  gosec:
-    severity: medium
-    confidence: medium
-    excludes:
-      - G104  # only exclude with documented justification
-```
 
 | Rule | Issue | Fix |
 |---|---|---|
@@ -661,24 +440,6 @@ When a security issue is discovered:
 ### Security Regression Tests
 
 Every fixed security vulnerability **must** have a test that proves the fix works and prevents regression:
-
-```go
-// security/sql_injection_test.go
-func TestUserRepo_FindByEmail_PreventsSQLInjection(t *testing.T) {
-    db := setupTestDB(t)
-    repo := repository.NewUserRepository(db)
-
-    // Arrange — classic SQL injection payload
-    maliciousInput := "' OR '1'='1"
-
-    // Act
-    user, err := repo.FindByEmail(context.Background(), maliciousInput)
-
-    // Assert — should return not found, not all users
-    assert.Nil(t, user)
-    assert.ErrorIs(t, errors.Cause(err), domain.ErrNotFound)
-}
-```
 
 ---
 

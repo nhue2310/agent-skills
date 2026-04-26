@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SkillDefinition",
+  "description": "Schema for defining a skill/tool usable by AI agents",
+  "type": "object",
+  "required": ["name", "description", "category", "input_schema", "output_schema", "compatible_platforms"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the skill",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what the skill does"
+    },
+    "category": {
+      "type": "string",
+      "description": "Category grouping for the skill",
+      "enum": [
+        "information_retrieval",
+        "file_operations",
+        "code_execution",
+        "code_operations",
+        "information_processing",
+        "multimodal",
+        "data_analysis",
+        "communication",
+        "web_automation"
+      ]
+    },
+    "input_schema": {
+      "$ref": "#/definitions/jsonSchemaObject",
+      "description": "JSON Schema defining the skill's input parameters"
+    },
+    "output_schema": {
+      "$ref": "#/definitions/jsonSchemaObject",
+      "description": "JSON Schema defining the skill's output structure"
+    },
+    "compatible_platforms": {
+      "type": "array",
+      "description": "List of platforms where this skill can be used",
+      "items": {
+        "type": "string",
+        "enum": ["claude", "codex", "gemini"]
+      },
+      "minItems": 1
+    }
+  },
+  "definitions": {
+    "jsonSchemaObject": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object"
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "type": "object"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

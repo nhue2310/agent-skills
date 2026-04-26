@@ -1,0 +1,48 @@
+name: image_analysis
+description: Analyze images to extract information, describe content, or answer questions about visual data.
+category: multimodal
+
+input_schema:
+  type: object
+  properties:
+    image_source:
+      type: string
+      description: URL or base64-encoded image data
+    prompt:
+      type: string
+      description: Specific question or instruction about the image
+      default: Describe what you see in this image in detail.
+    analysis_type:
+      type: string
+      description: Type of analysis to perform
+      enum: [describe, extract_text, detect_objects, analyze_chart, classify, custom]
+      default: describe
+    detail_level:
+      type: string
+      description: Level of detail in the analysis
+      enum: [brief, standard, detailed]
+      default: standard
+  required:
+    - image_source
+
+output_schema:
+  type: object
+  properties:
+    description:
+      type: string
+      description: Textual description or analysis of the image
+    detected_objects:
+      type: array
+      items:
+        type: string
+      description: List of detected objects (when using detect_objects)
+    extracted_text:
+      type: string
+      description: Text extracted from image (when using extract_text)
+    confidence:
+      type: number
+      description: Confidence score for the analysis (0-1)
+
+compatible_platforms:
+  - gemini
+  - claude

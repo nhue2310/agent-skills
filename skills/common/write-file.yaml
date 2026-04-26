@@ -1,0 +1,44 @@
+name: write_file
+description: Write or append content to a file on the local filesystem.
+category: file_operations
+
+input_schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: The file path to write to
+    content:
+      type: string
+      description: The content to write to the file
+    mode:
+      type: string
+      description: Write mode - overwrite or append
+      enum: [overwrite, append]
+      default: overwrite
+    encoding:
+      type: string
+      description: The file encoding (default utf-8)
+      default: utf-8
+    create_directories:
+      type: boolean
+      description: Create parent directories if they don't exist
+      default: true
+  required:
+    - path
+    - content
+
+output_schema:
+  type: object
+  properties:
+    success:
+      type: boolean
+    bytes_written:
+      type: integer
+    path:
+      type: string
+
+compatible_platforms:
+  - claude
+  - codex
+  - gemini

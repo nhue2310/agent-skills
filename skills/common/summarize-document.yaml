@@ -1,0 +1,43 @@
+name: summarize_document
+description: Summarize the content of a document, extracting key points and insights.
+category: information_processing
+
+input_schema:
+  type: object
+  properties:
+    content:
+      type: string
+      description: The document content to summarize (provide either this or file_path)
+    file_path:
+      type: string
+      description: Path to the document file to summarize
+    max_length:
+      type: integer
+      description: Maximum length of the summary in words
+      default: 300
+    format:
+      type: string
+      description: Output format for the summary
+      enum: [paragraph, bullet_points, structured]
+      default: paragraph
+    focus:
+      type: string
+      description: Optional specific aspect to focus on in the summary
+
+output_schema:
+  type: object
+  properties:
+    summary:
+      type: string
+      description: The generated summary
+    key_points:
+      type: array
+      items:
+        type: string
+      description: List of key takeaways
+    word_count:
+      type: integer
+
+compatible_platforms:
+  - claude
+  - gemini
